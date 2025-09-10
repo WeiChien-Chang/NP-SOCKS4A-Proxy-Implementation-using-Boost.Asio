@@ -5,6 +5,7 @@
 ## 目錄
 - [專案概觀](#專案概觀)
 - [功能總覽](#功能總覽)
+- [SOCK4/4A](#SOCKS4/4A)
 
 ## 專案概觀
 
@@ -30,3 +31,18 @@
 - ✅ **HTML 安全輸出**（`html_escape()`；`\n` → `&NewLine;`）
 - ✅ **Allow-list 防火牆**（`permit c|b <ip-pattern>`；熱更新）
 - ✅ **穩定性**（`fork()`、`SIGCHLD`、`io_context.notify_fork()` 與非同步 I/O）
+
+## SOCKS4/4A
+> 參考：
+> - [SOCKS Protocol Version 4](https://www.openssh.com/txt/socks4.protocol)
+> - [SOCKS Protocol Version 4A](https://www.openssh.com/txt/socks4a.protocol)
+
+### 什麼是 SOCKS4 與 4A？
+- **SOCKS4** 是一種位於應用層與傳輸層之間的 **TCP 代理協定**，對應用協定本身（HTTP、FTP、Telnet…）**不關心內容**，主要負責幫用戶端在代理端「代為建立」到目標伺服器的 TCP 連線，之後只做雙向轉送（relay）。
+- **SOCKS4A** 是 SOCKS4 的**簡單擴充**：當用戶端 **無法自行做 DNS 解析** 時，可把 **網域名稱** 交給 SOCKS 伺服器，由代理端解析後再連線。
+
+---
+
+### 封包結構（Request / Reply 摘要）
+
+**Client → Server（CONNECT 或 BIND 請求）**
