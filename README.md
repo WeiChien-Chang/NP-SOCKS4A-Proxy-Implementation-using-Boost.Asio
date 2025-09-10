@@ -5,7 +5,7 @@
 ## 目錄
 - [專案概觀](#專案概觀)
 - [功能總覽](#功能總覽)
-- [SOCK4/4A](#SOCKS4/4A)
+- [SOCKS4/4A](#SOCKS4/4A)
 
 ## 專案概觀
 
@@ -25,12 +25,12 @@
 
 ## 功能總覽
 
-- ✅ **SOCKS4/4A CONNECT**（代理端可做 DNS 解析 / 4A）
-- ✅ **SOCKS4/4A BIND**（完整兩段 `90` 回覆、再進入雙向 relay）
-- ✅ **CGI 即時主控台**（多目標並列、逐段 `<script>` 注入 + flush）
-- ✅ **HTML 安全輸出**（`html_escape()`；`\n` → `&NewLine;`）
-- ✅ **Allow-list 防火牆**（`permit c|b <ip-pattern>`；熱更新）
-- ✅ **穩定性**（`fork()`、`SIGCHLD`、`io_context.notify_fork()` 與非同步 I/O）
+- **SOCKS4/4A CONNECT**（代理端可做 DNS 解析 / 4A）
+- **SOCKS4/4A BIND**（完整兩段 `90` 回覆、再進入雙向 relay）
+- **CGI 即時主控台**（多目標並列、逐段 `<script>` 注入 + flush）
+- **HTML 安全輸出**（`html_escape()`；`\n` → `&NewLine;`）
+- **Allow-list 防火牆**（`permit c|b <ip-pattern>`；熱更新）
+- **穩定性**（`fork()`、`SIGCHLD`、`io_context.notify_fork()` 與非同步 I/O）
 
 ## SOCKS4/4A
 > 參考：
