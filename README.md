@@ -2,47 +2,44 @@
 
 > 以 **Boost.Asio 非同步網路** 為核心，實作 **SOCKS4/4A CONNECT / BIND**、**Allow-list 防火牆（支援熱更新）**，並提供 **CGI 即時串流主控台**（多目標並列、XSS 安全輸出）。
 
-## 目錄
-- [專案概觀](#專案概觀)
-- [功能總覽](#功能總覽)
-- [SOCKS4/4A](#SOCKS4/4A)
+---
 
-## 專案概觀
-
-本專案包含兩部分：
-
-- **SOCKS 伺服器**（`socks_server.cpp`）  
-  - 支援 **SOCKS4/4A** 協定（CONNECT / BIND）。  
-  - **Allow-list 防火牆**（萬用字元 `*`），每次請求即讀取設定檔，**不需重啟即可生效**。  
-  - 非同步網路 I/O、每連線 `fork()` 分工、`SIGCHLD` 非同步回收。
-
-- **CGI Proxy / 多主機主控台**（`console.cpp` → 部署為 `pj5.cgi`）  
-  - 充當 **SOCKS4A Client**，可同時連線至多台遠端主機（最多 5 欄）。  
-  - 以 `<script>` 片段 + `flush()` **即時串流輸出**，並做 **HTML escape 與安全換行**，避免 XSS 與頁面破版。  
-  - 以 shell `% ` prompt 偵測就緒，**節流指令送出**（先送 `who\n` 做 sanity check）。
+## 專案簡介
+- **非阻塞 I/O 與事件驅動**：兩個部份都以 Boost.Asio 的 async API 撰寫，沒有阻塞呼叫。  
+- **協議與互通性**：完整走過 **SOCKS4/4A** 的 CONNECT 與 BIND 流程（含 **BIND 的兩階段 90 回覆**），能與一般工具/客戶端互通。  
+- **系統層實作**：`fork()`、`SIGCHLD` 非阻塞回收、`reuse_address` 等細節。  
+- **安全與健壯性**：前端 **HTML escape** 防止 XSS、後端 **Firewall 規則**，並具備基本錯誤處理與日誌。  
+- **可觀測性與除錯友善**：輸出結構化的請求紀錄（來源/目的 IP/Port、動作與結果），便於問題定位與黑箱排除。
 
 ---
 
-## 功能總覽
+## 檔案結構
+- `console.cpp` — **Web 端多主機互動 Console（CGI 程式）**  
+  - 解析 `QUERY_STRING`（支援 `h0/p0/f0` 形式與 `sh/sp` SOCKS 參數）。  
+  - 透過 SOCKS4a 與多個遠端 shell 互動，**即時串流輸出到瀏覽器**（逐段 `<script>` append）。  
+  - 針對輸出做 **HTML escape** 與換行處理，避免破版與 XSS。  
 
-- **SOCKS4/4A CONNECT**（代理端可做 DNS 解析 / 4A）
-- **SOCKS4/4A BIND**（完整兩段 `90` 回覆、再進入雙向 relay）
-- **CGI 即時主控台**（多目標並列、逐段 `<script>` 注入 + flush）
-- **HTML 安全輸出**（`html_escape()`；`\n` → `&NewLine;`）
-- **Allow-list 防火牆**（`permit c|b <ip-pattern>`；熱更新）
-- **穩定性**（`fork()`、`SIGCHLD`、`io_context.notify_fork()` 與非同步 I/O）
-
-## SOCKS4/4A
-> 參考：
-> - [SOCKS Protocol Version 4](https://www.openssh.com/txt/socks4.protocol)
-> - [SOCKS Protocol Version 4A](https://www.openssh.com/txt/socks4a.protocol)
-
-### 什麼是 SOCKS4 與 4A？
-- **SOCKS4** 是一種位於應用層與傳輸層之間的 **TCP 代理協定**，對應用協定本身（HTTP、FTP、Telnet…）**不關心內容**，主要負責幫用戶端在代理端「代為建立」到目標伺服器的 TCP 連線，之後只做雙向轉送（relay）。
-- **SOCKS4A** 是 SOCKS4 的**簡單擴充**：當用戶端 **無法自行做 DNS 解析** 時，可把 **網域名稱** 交給 SOCKS 伺服器，由代理端解析後再連線。
+- `socks_server.cpp` — **SOCKS4/4A 代理伺服器**  
+  - 支援 **CONNECT / BIND**，完成 **雙向資料轉送**。  
+  - **BIND** 採兩階段成功回覆（第一次回報 listen 埠、第二次遠端接上後回報對端資訊）。  
+  - 內建 **Firewall**（簡易白名單；支援萬用字元 `*` 比對），預設拒絕。  
+  - `fork`-per-connection、`SIGCHLD` 非阻塞回收，確保父行程長駐且穩定。
 
 ---
 
-### 封包結構（Request / Reply 摘要）
+## 兩份程式的角色與功能
 
-**Client → Server（CONNECT 或 BIND 請求）**
+### 1) `console.cpp` — Browser 互動的「遠端操作台」
+我把它部署在支援 CGI 的 Web 伺服器下，使用者只要在網址列帶上參數（例如 `h0/p0/f0`、`sh/sp`），程式就會：
+- 建立多個非同步連線到 SOCKS 代理，再由代理連到目標主機（最多五台）。  
+- 從 `./test_case/<file>` 逐行餵指令給遠端 shell。  
+- 以 **即時串流** 的方式把回應顯示在瀏覽器的表格中（每台主機一格）。  
+
+### 2) `socks_server.cpp` — 支援 CONNECT / BIND 的 SOCKS4/4A 代理
+這個元件負責協議面與資料轉送：
+- **CONNECT**：解析請求（含 4A 的 DOMAIN 模式），成功時回覆 90 並開始**雙向 relay**。  
+- **BIND**：先動態取得系統分配的監聽埠 → 第一次回覆 90（告知 client 監聽埠）→ 等遠端來連 → 第二次回覆 90（帶對端 IP/Port）→ 開始 relay。  
+- **Firewall**：以設定檔白名單決定是否接受（支援 `140.113.*.*` 之類的萬用字元規則），不匹配則拒絕（91）。  
+- **資源管理**：`fork()` 子行程處理工作、父行程持續 `accept`；用 `SIGCHLD` 非阻塞回收避免殭屍行程。  
+
+---
