@@ -1,5 +1,6 @@
 # Network Programming: SOCKS4A_Proxy_Implementation_using_Boost.Asio
 
+[Note: SOCKS4/4A, CGI, Firewall(PDF)](./note/note.pdf)
 > 以 **Boost.Asio 非同步網路** 為核心，實作 **SOCKS4/4A CONNECT / BIND**、**Allow-list 防火牆（支援熱更新）**，並實作CGI 提供Web server能夠執行外部程式的標準介面。
 
 ---
