@@ -1,4 +1,3 @@
-<<<<<<< HEAD
 # Network Programming: SOCKS4A_Proxy_Implementation_using_Boost.Asio
 
 > 以 **Boost.Asio 非同步網路** 為核心，實作 **SOCKS4/4A CONNECT / BIND**、**Allow-list 防火牆（支援熱更新）**，並實作CGI 提供Web server能夠執行外部程式的標準介面。
@@ -42,6 +41,3 @@
 - **資源管理**：`fork()` Child Process 處理工作、Parent Process 持續 `accept`；用 `SIGCHLD` 非阻塞回收避免殭屍行程。  
 
 ---
-=======
-# Network Programming - SOCKS4A Proxy Implementation using Boost.Asio
->>>>>>> 3cb2526 (Upload note)
